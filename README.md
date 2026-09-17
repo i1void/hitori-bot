@@ -1,4 +1,4 @@
-# Hitori Bot
+# HITORI BOT (Base)
 
 > Base WhatsApp bot built with Baileys.
 
