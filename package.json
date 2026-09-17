@@ -1,7 +1,7 @@
 {
-  "name": "tatsu-bot",
-  "version": "2.0.0",
-  "description": "WhatsApp Bot (Baileys) - Downloader, Tools, Owner, Group",
+  "name": "hitori-bot",
+  "version": "1.0.0-beta",
+  "description": "WhatsApp Bot (Baileys)",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
