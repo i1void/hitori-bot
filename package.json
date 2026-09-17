@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js"
   },
-  "author": "g.dev/nodtfear",
+  "author": "g.dev/nodt",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
