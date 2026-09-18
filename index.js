@@ -45,9 +45,6 @@ function clearConsole() {
 async function connectToWhatsApp() {
   const { state, saveCreds } = await useMultiFileAuthState(`session/${config.sessionName}`)
 
-  // Fetch the live WhatsApp Web version directly from WhatsApp instead of
-  // Baileys' bundled version file, which can lag behind and cause
-  // 405/503 "Connection Failure" errors once the old version expires.
   const { version, isLatest } = await fetchLatestWaWebVersion()
   console.log(chalk.cyan(`Using WA v${version.join('.')}, isLatest: ${isLatest}`))
 
