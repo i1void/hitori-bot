@@ -540,6 +540,7 @@ module.exports = async (sock, m) => {
       case 'tagall': {
         if (!requireGroup()) return
         if (!requireAdmin()) return
+        if (!groupMetadata) return reply('Failed to fetch group info, please try again.')
         const list = groupMetadata.participants.map((p) => p.id)
         const teks = list.map((v) => `@${v.split('@')[0]}`).join(' ')
         reply(`${text ? text + '\n\n' : ''}${teks}`, { mentions: list })
@@ -549,6 +550,7 @@ module.exports = async (sock, m) => {
       case 'hidetag': {
         if (!requireGroup()) return
         if (!requireAdmin()) return
+        if (!groupMetadata) return reply('Failed to fetch group info, please try again.')
         const list = groupMetadata.participants.map((p) => p.id)
         reply(text || '‎', { mentions: list })
         break
@@ -619,6 +621,7 @@ module.exports = async (sock, m) => {
 
       case 'groupinfo': {
         if (!requireGroup()) return
+        if (!groupMetadata) return reply('Failed to fetch group info, please try again.')
         reply(
           `*${groupMetadata.subject}*\nID: ${m.chat}\nMembers: ${groupMetadata.participants.length}\nCreated: ${moment(
             groupMetadata.creation * 1000

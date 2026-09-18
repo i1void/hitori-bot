@@ -1,10 +1,9 @@
 const {
   default: makeWASocket,
   Browsers,
-  makeInMemoryStore,
   DisconnectReason,
   useMultiFileAuthState,
-  fetchLatestBaileysVersion,
+  fetchLatestWaWebVersion,
   downloadContentFromMessage,
   jidDecode,
   proto,
@@ -13,6 +12,7 @@ const fs = require('fs')
 const pino = require('pino')
 const chalk = require('chalk')
 const readline = require('readline')
+const qrcode = require('qrcode-terminal')
 const { Boom } = require('@hapi/boom')
 const config = require('./config')
 const { smsg, getBuffer, sleep } = require('./lib/myfunc')
@@ -44,12 +44,16 @@ function clearConsole() {
 
 async function connectToWhatsApp() {
   const { state, saveCreds } = await useMultiFileAuthState(`session/${config.sessionName}`)
-  const { version } = await fetchLatestBaileysVersion()
+
+  // Fetch the live WhatsApp Web version directly from WhatsApp instead of
+  // Baileys' bundled version file, which can lag behind and cause
+  // 405/503 "Connection Failure" errors once the old version expires.
+  const { version, isLatest } = await fetchLatestWaWebVersion()
+  console.log(chalk.cyan(`Using WA v${version.join('.')}, isLatest: ${isLatest}`))
 
   const sock = makeWASocket({
     version,
     logger,
-    printQRInTerminal: !config.usePairingCode,
     auth: state,
     markOnlineOnConnect: true,
     browser: Browsers.ubuntu('Chrome'),
@@ -59,12 +63,15 @@ async function connectToWhatsApp() {
     clearConsole()
     let numberInput = config.botNumber
     if (!numberInput || numberInput.includes('X')) {
-      numberInput = await question('Masukkan nomor WhatsApp bot (contoh 6281234567890): ')
+      numberInput = await question(
+        'Enter WhatsApp bot number with country code, digits only, no + or spaces\n' +
+          '(e.g. 14155552671 for US, 447911123456 for UK, 6281234567890 for Indonesia): '
+      )
     }
     setTimeout(async () => {
       let code = await sock.requestPairingCode(numberInput.replace(/[^0-9]/g, ''))
       code = code?.match(/.{1,4}/g)?.join('-') || code
-      console.log(chalk.green(`Kode Pairing: ${code}`))
+      console.log(chalk.green(`Pairing Code: ${code}`))
     }, 3000)
   }
 
@@ -99,8 +106,12 @@ async function connectToWhatsApp() {
 
   sock.sendText = (jid, text, quoted, options = {}) =>
     sock.sendMessage(jid, { text, ...options }, { quoted })
-  sock.sendMedia = (jid, buffer, _type, caption, quoted, options = {}) =>
-    sock.sendMessage(jid, { document: buffer, caption, ...options }, { quoted })
+
+  // 'file' is kept as an alias for 'document' since lib/myfunc.js's m.reply() uses it.
+  sock.sendMedia = (jid, buffer, type = 'document', caption = '', quoted, options = {}) => {
+    const key = type === 'file' ? 'document' : type
+    return sock.sendMessage(jid, { [key]: buffer, caption, ...options }, { quoted })
+  }
 
   sock.sendImage = async (jid, buffer, caption = '', quoted, options = {}) =>
     sock.sendMessage(jid, { image: buffer, caption, ...options }, { quoted })
@@ -138,6 +149,7 @@ async function connectToWhatsApp() {
       if (mek.key.id?.startsWith('BAE5') && mek.key.id.length === 16) return
 
       const m = smsg(sock, mek, store)
+      if (!m) return
       if (m.isGroup) {
         const handled = await handleAntiLink(sock, m, m.chat).catch(() => false)
         if (handled) return
@@ -152,7 +164,7 @@ async function connectToWhatsApp() {
     try {
       await welcomeHandler(sock, update)
     } catch (err) {
-      console.error('Error di group-participants.update:', err)
+      console.error('Error in group-participants.update:', err)
     }
   })
 
@@ -168,36 +180,42 @@ async function connectToWhatsApp() {
   sock.ev.on('creds.update', saveCreds)
 
   sock.ev.on('connection.update', (update) => {
-    const { connection, lastDisconnect } = update
+    const { connection, lastDisconnect, qr } = update
+
+    // Manual QR rendering (printQRInTerminal is deprecated in recent Baileys versions).
+    if (qr && !config.usePairingCode) {
+      qrcode.generate(qr, { small: true })
+    }
+
     if (connection === 'close') {
       const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
       switch (reason) {
         case DisconnectReason.badSession:
-          console.log(chalk.red('Sesi rusak. Hapus folder session/ lalu scan/pairing ulang.'))
+          console.log(chalk.red('Session corrupted. Delete the session/ folder, then re-scan/pair.'))
           process.exit()
           break
         case DisconnectReason.connectionClosed:
         case DisconnectReason.connectionLost:
         case DisconnectReason.restartRequired:
         case DisconnectReason.timedOut:
-          console.log(chalk.yellow('Koneksi terputus, menyambungkan ulang...'))
+          console.log(chalk.yellow('Connection lost, reconnecting...'))
           connectToWhatsApp()
           break
         case DisconnectReason.connectionReplaced:
-          console.log(chalk.red('Sesi dipakai di tempat lain. Restart bot ini kalau ini seharusnya jadi sesi aktif.'))
+          console.log(chalk.red('Session is being used elsewhere. Restart this bot if this should be the active session.'))
           process.exit()
           break
         case DisconnectReason.loggedOut:
-          console.log(chalk.red('Logout dari device. Hapus folder session/ lalu scan/pairing ulang.'))
+          console.log(chalk.red('Logged out from the device. Delete the session/ folder, then re-scan/pair.'))
           process.exit()
           break
         default:
-          console.log(chalk.yellow(`Terputus (${reason}), mencoba menyambung ulang...`))
+          console.log(chalk.yellow(`Disconnected (${reason}), attempting to reconnect...`))
           connectToWhatsApp()
       }
     } else if (connection === 'open') {
       clearConsole()
-      console.log(chalk.green(`${config.botName} tersambung ✔`))
+      console.log(chalk.green(`${config.botName} connected ✔`))
     }
   })
 
@@ -209,7 +227,7 @@ connectToWhatsApp()
 const file = require.resolve(__filename)
 fs.watchFile(file, () => {
   fs.unwatchFile(file)
-  console.log(chalk.redBright(`Update ${__filename}`))
+  console.log(chalk.redBright(`Updated ${__filename}`))
   delete require.cache[file]
   require(file)
 })

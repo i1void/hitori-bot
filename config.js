@@ -39,8 +39,10 @@ module.exports = {
   ctext,
   sessionName: 'hitori',
   usePairingCode: true,
-  botNumber: '628XXXXXXXXXX',
-  owner: ['628XXXXXXXXXX'],
+  // Full number with country code, digits only, no + or spaces.
+  // e.g. 14155552671 (US), 447911123456 (UK), 6281234567890 (Indonesia)
+  botNumber: 'XXXXXXXXXXX',
+  owner: ['XXXXXXXXXXX'],
   ownerName: 'Owner',
   botName: 'Hitori Bot',
   packName: 'Hitori', //pack+author for sticker 
