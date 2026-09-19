@@ -8,7 +8,6 @@ const {
   jidDecode,
   proto,
 } = require('@whiskeysockets/baileys')
-const fs = require('fs')
 const pino = require('pino')
 const chalk = require('chalk')
 const readline = require('readline')
@@ -18,6 +17,7 @@ const config = require('./config')
 const { smsg, getBuffer, sleep } = require('./lib/myfunc')
 const { welcomeHandler } = require('./lib/welcome')
 const { handleAntiLink } = require('./lib/antilink')
+const { loadPlugins } = require('./lib/pluginLoader')
 const {
   imageToWebp,
   videoToWebp,
@@ -219,12 +219,5 @@ async function connectToWhatsApp() {
   return sock
 }
 
+loadPlugins()
 connectToWhatsApp()
-
-const file = require.resolve(__filename)
-fs.watchFile(file, () => {
-  fs.unwatchFile(file)
-  console.log(chalk.redBright(`Updated ${__filename}`))
-  delete require.cache[file]
-  require(file)
-})
