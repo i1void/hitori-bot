@@ -13,7 +13,7 @@ const readline = require('readline')
 const qrcode = require('qrcode-terminal')
 const { Boom } = require('@hapi/boom')
 const config = require('./config')
-const { smsg, getBuffer, sleep } = require('./lib/myfunc')
+const { smsg, getBuffer, sleep, logMessage } = require('./lib/myfunc')
 const { welcomeHandler } = require('./lib/welcome')
 const { handleAntiLink } = require('./lib/antilink')
 const { loadPlugins } = require('./lib/pluginLoader')
@@ -34,6 +34,18 @@ const question = (text) =>
 
 function clearConsole() {
   console.clear()
+}
+
+// Big title (package "cfonts"). Plain text if it is not installed yet.
+function showBanner() {
+  try {
+    const CFonts = require('cfonts')
+    CFonts.say('HITORI BOT', { font: 'tiny', align: 'center', colors: ['system'] })
+    CFonts.say('Github : https://github.com/i1void/hitori-bot', { font: 'console', align: 'center', colors: ['system'] })
+  } catch {
+    console.log(chalk.bold('HITORI BOT'))
+    console.log('Github : https://github.com/i1void/hitori-bot')
+  }
 }
 
 async function connectToWhatsApp() {
@@ -126,6 +138,7 @@ async function connectToWhatsApp() {
 
       const m = smsg(sock, mek, store)
       if (!m) return
+      logMessage(sock, m)
       if (m.isGroup) {
         const handled = await handleAntiLink(sock, m, m.chat).catch(() => false)
         if (handled) return
@@ -191,6 +204,7 @@ async function connectToWhatsApp() {
       }
     } else if (connection === 'open') {
       clearConsole()
+      showBanner()
       console.log(chalk.green(`${config.botName} connected ✔`))
     }
   })
@@ -198,5 +212,6 @@ async function connectToWhatsApp() {
   return sock
 }
 
+showBanner()
 loadPlugins()
 connectToWhatsApp()
