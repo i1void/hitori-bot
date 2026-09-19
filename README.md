@@ -43,7 +43,7 @@ All settings live in `config.js` — bot number, owner, prefixes, etc. Edit as n
 
 ## Adding a command
 
-Copy `plugins/_template.js` to `plugins/<category>/<name>.js` and edit it. Restart the bot.
+Copy `plugins/_template.js` to `plugins/<category>/<name>.js` (or straight into `plugins/`, like `menu.js`) and edit it. Restart the bot.
 Files or folders starting with `_` are ignored by the loader.
 
 ```js
@@ -64,10 +64,29 @@ module.exports = {
 
 `ctx` contains: `sock, m, store, config, plugin, command, args, text, prefix, reply, sleep,
 mentionedJid, user, isOwner, isPremium, isGroup, isAdmin, isBotAdmin, groupMetadata,
-groupAdmins, useLimit`.
+groupAdmins, useLimit, refundLimit`.
 
 A broken plugin (syntax error, missing field) or a duplicate command name is skipped and
-reported in the console; the bot keeps running. Menu text is still in `lib/menu.js`.
+reported in the console; the bot keeps running.
+
+The menu is generated automatically from `category`, `name`, `aliases` and `usage` of every plugin.
+A new plugin, or a whole new folder/category (e.g. `plugins/tools/`), shows up in the menu by itself.
+Set `hidden: true` to keep a command out of the menu.
+
+## Limit
+
+Free users get `config.limit.free` per day. The limit is topped up lazily the first time a user
+sends a command on a new day (default timezone `Asia/Jakarta`; add `timezone: 'UTC'` etc. to
+`config.js` to change it). Bonus limit above the free amount (`addlimit`) is kept.
+A plugin calls `ctx.useLimit()` after validating its arguments and `ctx.refundLimit()` when the
+job fails before anything was delivered.
+
+## Owner tools
+
+- `.plugin` lists commands, `.plugin off <cmd>` / `.plugin on <cmd>` switches one off/on
+  (stored in `storage/database/settings.json`; a disabled command is also hidden from the menu).
+- Mistyped commands get a hint, e.g. `.tktok` -> `Did you mean .tiktok?`
+- `.botstatus` shows uptime, memory, groups, users and command counts.
 
 ## Deploy
 

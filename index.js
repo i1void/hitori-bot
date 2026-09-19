@@ -4,7 +4,6 @@ const {
   DisconnectReason,
   useMultiFileAuthState,
   fetchLatestWaWebVersion,
-  downloadContentFromMessage,
   jidDecode,
   proto,
 } = require('@whiskeysockets/baileys')
@@ -18,12 +17,7 @@ const { smsg, getBuffer, sleep } = require('./lib/myfunc')
 const { welcomeHandler } = require('./lib/welcome')
 const { handleAntiLink } = require('./lib/antilink')
 const { loadPlugins } = require('./lib/pluginLoader')
-const {
-  imageToWebp,
-  videoToWebp,
-  writeExifImg,
-  writeExifVid,
-} = require('./lib/exif')
+const { downloadMedia, imageToSticker, videoToSticker } = require('./lib/media')
 
 const store = { contacts: {} }
 
@@ -90,16 +84,7 @@ async function connectToWhatsApp() {
     return store.contacts[id]?.name || id.split('@')[0]
   }
 
-  sock.downloadMediaMessage = async (message) => {
-    const mime = (message.msg || message).mimetype || ''
-    const messageType = message.mtype ? message.mtype.replace(/Message/gi, '') : mime.split('/')[0]
-    const stream = await downloadContentFromMessage(message, messageType)
-    let buffer = Buffer.from([])
-    for await (const chunk of stream) {
-      buffer = Buffer.concat([buffer, chunk])
-    }
-    return buffer
-  }
+  sock.downloadMediaMessage = downloadMedia
 
   sock.sendText = (jid, text, quoted, options = {}) =>
     sock.sendMessage(jid, { text, ...options }, { quoted })
@@ -114,20 +99,14 @@ async function connectToWhatsApp() {
     sock.sendMessage(jid, { image: buffer, caption, ...options }, { quoted })
 
   sock.sendImageAsSticker = async (jid, buffer, quoted, options = {}) => {
-    const sticker =
-      options.packname || options.author
-        ? await writeExifImg(buffer, options)
-        : await imageToWebp(buffer)
-    await sock.sendMessage(jid, { sticker: { url: sticker } }, { quoted })
+    const sticker = await imageToSticker(buffer, options)
+    await sock.sendMessage(jid, { sticker }, { quoted })
     return sticker
   }
 
   sock.sendVideoAsSticker = async (jid, buffer, quoted, options = {}) => {
-    const sticker =
-      options.packname || options.author
-        ? await writeExifVid(buffer, options)
-        : await videoToWebp(buffer)
-    await sock.sendMessage(jid, { sticker: { url: sticker } }, { quoted })
+    const sticker = await videoToSticker(buffer, options)
+    await sock.sendMessage(jid, { sticker }, { quoted })
     return sticker
   }
 
