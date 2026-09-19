@@ -6,12 +6,13 @@ module.exports = {
   aliases: [],
   category: 'utility', // utility | downloader | media | converter | owner | group
   description: 'Short description',
-  usage: '<text>',
+  usage: '<text>', // shown in the menu after the command name
   ownerOnly: false, // only config.owner
   groupOnly: false, // group chat only
   adminOnly: false, // group admin (owner passes); implies groupOnly
   botAdmin: false, // bot must be a group admin (owner does NOT bypass); implies groupOnly
-  limit: false, // metadata only: the plugin calls ctx.useLimit() itself after validating args
+  hidden: false, // true = not listed in the menu
+  limit: false, // metadata only: call ctx.useLimit() after validating args, ctx.refundLimit() if the job fails
   execute: async (ctx) => {
     const { reply, text, prefix, command } = ctx
     if (!text) return reply(`Example: ${prefix}${command} hello`)
