@@ -7,7 +7,7 @@ module.exports = {
   description: 'Download YouTube audio / video',
   usage: '<youtube link>',
   limit: true, // metadata only: the plugin calls useLimit() itself after validating args
-  execute: async ({ sock, m, config, prefix, command, text, reply, useLimit }) => {
+  execute: async ({ sock, m, config, prefix, command, text, reply, useLimit, refundLimit }) => {
     if (!text) return reply(`Enter a YouTube link.\nExample: ${prefix}${command} https://youtu.be/xxxx`)
     if (!useLimit()) return
     try {
@@ -26,6 +26,7 @@ module.exports = {
       }
     } catch (err) {
       console.error(err)
+      refundLimit()
       reply(config.messages.error)
     }
   },
