@@ -17,6 +17,7 @@
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "ruhend-scraper": "^8.0.3",
     "axios": "^1.7.9",
+    "cfonts": "^3.1.1",
     "chalk": "^4.1.2",
     "file-type": "^16.5.4",
     "fluent-ffmpeg": "^2.1.3",
