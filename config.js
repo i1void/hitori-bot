@@ -31,6 +31,7 @@ module.exports = {
     free: 15,
     premium: 10000,
   },
+  timezone: 'Asia/Jakarta',
   messages: global.mess,
 }
 
